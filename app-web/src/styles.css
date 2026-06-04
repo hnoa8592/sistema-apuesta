@@ -1,0 +1,64 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --q-bg: #f9f9f4;
+    --q-surface: #ffffff;
+    --q-surface-2: #f4f4ee;
+    --q-fg: #1a1d2e;
+    --q-fg-2: #5a5e72;
+    --q-fg-3: #9e9fa8;
+    --q-accent: #9edb4f;
+    --q-accent-soft: #9edb4f1a;
+    --q-danger: #d45a2a;
+    --font-display: "Inter Tight", sans-serif;
+    --font-ui: "Inter", sans-serif;
+    --font-mono: "JetBrains Mono", monospace;
+    --radius-sm: 8px;
+    --radius-md: 14px;
+    --radius-lg: 20px;
+    --radius-xl: 28px;
+  }
+
+  .dark {
+    --q-bg: #1e2030;
+    --q-surface: #242638;
+    --q-surface-2: #2a2d40;
+    --q-fg: #f7f7f0;
+    --q-fg-2: #b8bcc8;
+    --q-fg-3: #a4a8b4;
+    --q-accent: #b4e866;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; font-family: var(--font-ui); background-color: var(--q-bg); color: var(--q-fg); }
+  .font-display { font-family: var(--font-display); }
+  .font-mono { font-family: var(--font-mono); }
+
+  /* Login/Register form inputs only - dark readable text */
+  app-login input, app-login textarea, app-login select {
+    color: #1a1d2e !important;
+  }
+  app-login input::placeholder, app-login textarea::placeholder {
+    color: #6a6d7e !important;
+    opacity: 1;
+  }
+}
+
+@layer utilities {
+  @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+  .animate-blink { animation: blink 1s ease-in-out infinite; }
+
+  @keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+  }
+  .skeleton {
+    background: linear-gradient(90deg, var(--q-surface-2) 25%, var(--q-surface) 50%, var(--q-surface-2) 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+    border-radius: var(--radius-sm);
+  }
+}

@@ -1,0 +1,88 @@
+spring:
+  datasource:
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/tecnoa}
+    username: ${DATABASE_USER:tecnoa}
+    password: ${DATABASE_PASSWORD:tecnoa_dev}
+    hikari:
+      maximum-pool-size: 10
+      connection-timeout: 30000
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        default_schema: public
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        show_sql: true
+        format_sql: true
+    open-in-view: false
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: false
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: hilcercito@gmail.com
+    password: rkdwkenahgxfvelq
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
+app:
+  jwt:
+    secret: ${JWT_SECRET:change-me-in-production-min-256-bits-secret-key}
+    expiration-days: 7
+  google:
+    client-id: ${GOOGLE_CLIENT_ID:}
+  football-data:
+    api-key: ${FOOTBALL_DATA_API_KEY:}
+    base-url: https://api.football-data.org/v4
+    supported-competitions:
+      - code: WC
+        type: WORLD_CUP
+        has-phases: true
+      - code: CL
+        type: CHAMPIONS_LEAGUE
+        has-phases: true
+      - code: CA
+        type: COPA_AMERICA
+        has-phases: true
+      - code: EL
+        type: EUROPA_LEAGUE
+        has-phases: true
+      - code: PL
+        type: NATIONAL_LEAGUE
+        has-phases: false
+      - code: PD
+        type: NATIONAL_LEAGUE
+        has-phases: false
+  mail:
+    from: hilcercito@gmail.com
+    verification-url: ${APP_BASE_URL:http://localhost:8080}/api/v1/users/verify-email
+    token-expiry-hours: 24
+  fcm:
+    credentials-file: ${GOOGLE_APPLICATION_CREDENTIALS:}
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  health:
+    mail:
+      enabled: false
+
+logging:
+  level:
+    com.tecnoa: DEBUG
+    org.springframework.security: INFO

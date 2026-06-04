@@ -1,0 +1,29 @@
+# Gradle
+backend/.gradle/
+backend/build/
+backend/*.jar
+backend/gradle/wrapper/gradle-wrapper.jar
+
+# Node modules
+node_modules/
+app-web/node_modules/
+
+# Environment files
+.env
+*.env.local
+
+# Google credentials
+client_secret*.json
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build outputs
+*.class
+*.jar
