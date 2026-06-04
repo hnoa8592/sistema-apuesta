@@ -51,13 +51,6 @@ type AuthMode = 'google' | 'login' | 'register' | 'forgot' | 'reset';
 
           <!-- Mode switcher tabs -->
           <div class="flex w-full gap-1 bg-[var(--q-bg-2)] rounded-[var(--radius-md)] p-1">
-            <button (click)="setMode('google')"
-                    [class.bg-white]="mode() === 'google'"
-                    class="flex-1 py-1.5 rounded-[var(--radius-sm)] text-sm font-semibold transition-colors"
-                    [class.text-[var(--q-fg)]]="mode() !== 'google'"
-                    [class.shadow-sm]="mode() === 'google'">
-              Google
-            </button>
             <button (click)="setMode('login')"
                     [class.bg-white]="mode() === 'login' || mode() === 'register' || mode() === 'forgot' || mode() === 'reset'"
                     class="flex-1 py-1.5 rounded-[var(--radius-sm)] text-sm font-semibold transition-colors"
@@ -184,7 +177,7 @@ export class LoginComponent implements OnInit, AfterViewInit {
   private route  = inject(ActivatedRoute);
   private notify = inject(NotificationService);
 
-  mode = signal<AuthMode>('google');
+  mode = signal<AuthMode>('login');
   loading = signal(false);
   googleLoaded = signal(false);
   forgotSent = signal(false);
