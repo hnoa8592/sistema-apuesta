@@ -133,8 +133,9 @@ export class WildcardsComponent implements OnInit {
     this.wcSvc.getWildcards(groupId).subscribe(wcs => {
       const types: WildcardType[] = ['FINALIST_1','FINALIST_2','BEST_PLAYER','BEST_GOALKEEPER','TOP_SCORER'];
       const map = new Map(wcs.map(w => [w.type, w]));
+      const hasSubmitted = wcs.some(w => w.teamId || w.playerName);
       this.wildcards.set(types.map(t => map.get(t) || {
-        groupId, type: t, isLocked: this.isLocked(),
+        groupId, type: t, isLocked: hasSubmitted || this.isLocked(),
       }));
     });
   }
