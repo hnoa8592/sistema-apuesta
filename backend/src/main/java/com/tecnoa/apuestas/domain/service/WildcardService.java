@@ -51,11 +51,11 @@ public class WildcardService {
         requireMember(groupId, principal.getUserId());
         BettingGroup group = requireWildcardsEnabled(groupId);
         List<Wildcard> existing = wildcardRepository.findByGroupIdAndUserId(groupId, principal.getUserId());
-        // TEMP TEST: Force isLocked=true for all responses to verify frontend works
-        boolean isLocked = true;
-        List<WildcardResponse> response = existing.stream().map(w -> toDto(w, isLocked)).toList();
-        log.info("Returning {} wildcards with isLocked={}", response.size(), isLocked);
-        return response;
+        boolean hasSubmitted = existing.stream()
+                .anyMatch(w -> w.getTeam() != null || (w.getPlayerName() != null && !w.getPlayerName().isBlank()));
+        boolean groupLocked = group.getTournament().getStatus() != TournamentStatus.SCHEDULED;
+        boolean isLocked = hasSubmitted || groupLocked;
+        return existing.stream().map(w -> toDto(w, isLocked)).toList();
     }
 
     @Transactional
