@@ -45,9 +45,13 @@ public class WildcardService {
 
     public List<WildcardResponse> getMyWildcards(UUID groupId, UserPrincipal principal) {
         requireMember(groupId, principal.getUserId());
-        requireWildcardsEnabled(groupId);
-        return wildcardRepository.findByGroupIdAndUserId(groupId, principal.getUserId())
-                .stream().map(this::toDto).toList();
+        BettingGroup group = requireWildcardsEnabled(groupId);
+        List<Wildcard> existing = wildcardRepository.findByGroupIdAndUserId(groupId, principal.getUserId());
+        boolean hasSubmitted = existing.stream()
+                .anyMatch(w -> w.getTeam() != null || (w.getPlayerName() != null && !w.getPlayerName().isBlank()));
+        boolean groupLocked = group.getTournament().getStatus() != TournamentStatus.SCHEDULED;
+        boolean isLocked = hasSubmitted || groupLocked;
+        return existing.stream().map(w -> toDto(w, isLocked)).toList();
     }
 
     @Transactional
@@ -95,8 +99,12 @@ public class WildcardService {
             wildcardRepository.save(wc);
         }
 
-        return wildcardRepository.findByGroupIdAndUserId(groupId, userId)
-                .stream().map(this::toDto).toList();
+        List<Wildcard> saved = wildcardRepository.findByGroupIdAndUserId(groupId, userId);
+        boolean hasSubmitted = saved.stream()
+                .anyMatch(w -> w.getTeam() != null || (w.getPlayerName() != null && !w.getPlayerName().isBlank()));
+        boolean groupLocked = group.getTournament().getStatus() != TournamentStatus.SCHEDULED;
+        boolean isLocked = hasSubmitted || groupLocked;
+        return saved.stream().map(w -> toDto(w, isLocked)).toList();
     }
 
     private BettingGroup requireWildcardsEnabled(UUID groupId) {
@@ -114,8 +122,7 @@ public class WildcardService {
         }
     }
 
-    private WildcardResponse toDto(Wildcard w) {
-        boolean isLocked = w.getGroup().getTournament().getStatus() != TournamentStatus.SCHEDULED;
+    private WildcardResponse toDto(Wildcard w, boolean isLocked) {
         return new WildcardResponse(
                 w.getId(), w.getType(), LABELS.getOrDefault(w.getType(), w.getType().name()),
                 w.getTeam() != null ? w.getTeam().getId() : null,
