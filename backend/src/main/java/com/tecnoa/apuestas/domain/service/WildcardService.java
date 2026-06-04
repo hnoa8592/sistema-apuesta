@@ -56,6 +56,14 @@ public class WildcardService {
         requireMember(groupId, userId);
         BettingGroup group = requireWildcardsEnabled(groupId);
 
+        // Check if user already submitted wildcards - once saved, cannot be modified
+        List<Wildcard> existing = wildcardRepository.findByGroupIdAndUserId(groupId, userId);
+        boolean alreadySubmitted = existing.stream()
+                .anyMatch(w -> (w.getTeam() != null || (w.getPlayerName() != null && !w.getPlayerName().isBlank())));
+        if (alreadySubmitted) {
+            throw new AppException(ErrorCode.WILDCARDS_LOCKED, "Wildcards already submitted and cannot be modified");
+        }
+
         if (group.getTournament().getStatus() != TournamentStatus.SCHEDULED) {
             throw new AppException(ErrorCode.WILDCARDS_LOCKED, "Wildcards are locked once the tournament starts");
         }
