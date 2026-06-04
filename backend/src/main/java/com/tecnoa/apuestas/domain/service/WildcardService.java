@@ -52,9 +52,18 @@ public class WildcardService {
         BettingGroup group = requireWildcardsEnabled(groupId);
         List<Wildcard> existing = wildcardRepository.findByGroupIdAndUserId(groupId, principal.getUserId());
         boolean hasSubmitted = existing.stream()
-                .anyMatch(w -> w.getTeam() != null || (w.getPlayerName() != null && !w.getPlayerName().isBlank()));
+                .anyMatch(w -> w.getTeam() != null && w.getTeam().getId() != null
+                        || w.getPlayerName() != null && !w.getPlayerName().isBlank());
         boolean groupLocked = group.getTournament().getStatus() != TournamentStatus.SCHEDULED;
         boolean isLocked = hasSubmitted || groupLocked;
+        log.info("getMyWildcards: userId={}, existingCount={}, hasSubmitted={}, groupLocked={}",
+                principal.getUserId(), existing.size(), hasSubmitted, groupLocked);
+        for (Wildcard w : existing) {
+            log.info("  {}: team={} (id={}), playerName={}", w.getType(),
+                    w.getTeam() != null ? w.getTeam().getName() : null,
+                    w.getTeam() != null ? w.getTeam().getId() : null,
+                    w.getPlayerName());
+        }
         return existing.stream().map(w -> toDto(w, isLocked)).toList();
     }
 
@@ -67,13 +76,11 @@ public class WildcardService {
 
         // Check if user already submitted wildcards - once saved, cannot be modified
         List<Wildcard> existing = wildcardRepository.findByGroupIdAndUserId(groupId, userId);
-        log.info("Found {} existing wildcards for update check", existing.size());
-        for (Wildcard w : existing) {
-            log.info("  Existing: type={}, teamId={}, playerName={}",
-                    w.getType(), w.getTeam() != null ? w.getTeam().getId() : null, w.getPlayerName());
-        }
+        log.info("updateWildcards: found {} existing wildcards", existing.size());
         boolean alreadySubmitted = existing.stream()
-                .anyMatch(w -> (w.getTeam() != null || (w.getPlayerName() != null && !w.getPlayerName().isBlank())));
+                .anyMatch(w -> w.getTeam() != null && w.getTeam().getId() != null
+                        || w.getPlayerName() != null && !w.getPlayerName().isBlank());
+        log.info("alreadySubmitted={}", alreadySubmitted);
         log.info("alreadySubmitted={}", alreadySubmitted);
         if (alreadySubmitted) {
             log.warn("User {} attempted to update already submitted wildcards in group {}", userId, groupId);
