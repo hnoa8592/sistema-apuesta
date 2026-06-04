@@ -9,6 +9,8 @@ import com.tecnoa.apuestas.domain.model.enums.TournamentStatus;
 import com.tecnoa.apuestas.domain.model.enums.WildcardType;
 import com.tecnoa.apuestas.domain.repository.*;
 import com.tecnoa.apuestas.infrastructure.security.UserPrincipal;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,6 +20,8 @@ import java.util.UUID;
 
 @Service
 public class WildcardService {
+
+    private static final Logger log = LoggerFactory.getLogger(WildcardService.class);
 
     private static final Map<WildcardType, String> LABELS = Map.of(
             WildcardType.FINALIST_1, "Selección a la final #1",
@@ -47,24 +51,32 @@ public class WildcardService {
         requireMember(groupId, principal.getUserId());
         BettingGroup group = requireWildcardsEnabled(groupId);
         List<Wildcard> existing = wildcardRepository.findByGroupIdAndUserId(groupId, principal.getUserId());
-        boolean hasSubmitted = existing.stream()
-                .anyMatch(w -> w.getTeam() != null || (w.getPlayerName() != null && !w.getPlayerName().isBlank()));
-        boolean groupLocked = group.getTournament().getStatus() != TournamentStatus.SCHEDULED;
-        boolean isLocked = hasSubmitted || groupLocked;
-        return existing.stream().map(w -> toDto(w, isLocked)).toList();
+        // TEMP TEST: Force isLocked=true for all responses to verify frontend works
+        boolean isLocked = true;
+        List<WildcardResponse> response = existing.stream().map(w -> toDto(w, isLocked)).toList();
+        log.info("Returning {} wildcards with isLocked={}", response.size(), isLocked);
+        return response;
     }
 
     @Transactional
     public List<WildcardResponse> updateWildcards(UUID groupId, WildcardsRequest req, UserPrincipal principal) {
         UUID userId = principal.getUserId();
+        log.info("updateWildcards called - groupId={}, userId={}", groupId, userId);
         requireMember(groupId, userId);
         BettingGroup group = requireWildcardsEnabled(groupId);
 
         // Check if user already submitted wildcards - once saved, cannot be modified
         List<Wildcard> existing = wildcardRepository.findByGroupIdAndUserId(groupId, userId);
+        log.info("Found {} existing wildcards for update check", existing.size());
+        for (Wildcard w : existing) {
+            log.info("  Existing: type={}, teamId={}, playerName={}",
+                    w.getType(), w.getTeam() != null ? w.getTeam().getId() : null, w.getPlayerName());
+        }
         boolean alreadySubmitted = existing.stream()
                 .anyMatch(w -> (w.getTeam() != null || (w.getPlayerName() != null && !w.getPlayerName().isBlank())));
+        log.info("alreadySubmitted={}", alreadySubmitted);
         if (alreadySubmitted) {
+            log.warn("User {} attempted to update already submitted wildcards in group {}", userId, groupId);
             throw new AppException(ErrorCode.WILDCARDS_LOCKED, "Wildcards already submitted and cannot be modified");
         }
 
