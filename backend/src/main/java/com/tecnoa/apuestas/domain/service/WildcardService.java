@@ -50,40 +50,27 @@ public class WildcardService {
     public List<WildcardResponse> getMyWildcards(UUID groupId, UserPrincipal principal) {
         requireMember(groupId, principal.getUserId());
         BettingGroup group = requireWildcardsEnabled(groupId);
-        List<Wildcard> existing = wildcardRepository.findByGroupIdAndUserId(groupId, principal.getUserId());
+        List<Wildcard> existing = wildcardRepository.findByGroupIdAndUserIdWithTeam(groupId, principal.getUserId());
         boolean hasSubmitted = existing.stream()
-                .anyMatch(w -> w.getTeam() != null && w.getTeam().getId() != null
-                        || w.getPlayerName() != null && !w.getPlayerName().isBlank());
+                .anyMatch(w -> (w.getTeam() != null && w.getTeam().getId() != null)
+                        || (w.getPlayerName() != null && !w.getPlayerName().isBlank()));
         boolean groupLocked = group.getTournament().getStatus() != TournamentStatus.SCHEDULED;
         boolean isLocked = hasSubmitted || groupLocked;
-        log.info("getMyWildcards: userId={}, existingCount={}, hasSubmitted={}, groupLocked={}",
-                principal.getUserId(), existing.size(), hasSubmitted, groupLocked);
-        for (Wildcard w : existing) {
-            log.info("  {}: team={} (id={}), playerName={}", w.getType(),
-                    w.getTeam() != null ? w.getTeam().getName() : null,
-                    w.getTeam() != null ? w.getTeam().getId() : null,
-                    w.getPlayerName());
-        }
         return existing.stream().map(w -> toDto(w, isLocked)).toList();
     }
 
     @Transactional
     public List<WildcardResponse> updateWildcards(UUID groupId, WildcardsRequest req, UserPrincipal principal) {
         UUID userId = principal.getUserId();
-        log.info("updateWildcards called - groupId={}, userId={}", groupId, userId);
         requireMember(groupId, userId);
         BettingGroup group = requireWildcardsEnabled(groupId);
 
         // Check if user already submitted wildcards - once saved, cannot be modified
-        List<Wildcard> existing = wildcardRepository.findByGroupIdAndUserId(groupId, userId);
-        log.info("updateWildcards: found {} existing wildcards", existing.size());
+        List<Wildcard> existing = wildcardRepository.findByGroupIdAndUserIdWithTeam(groupId, userId);
         boolean alreadySubmitted = existing.stream()
-                .anyMatch(w -> w.getTeam() != null && w.getTeam().getId() != null
-                        || w.getPlayerName() != null && !w.getPlayerName().isBlank());
-        log.info("alreadySubmitted={}", alreadySubmitted);
-        log.info("alreadySubmitted={}", alreadySubmitted);
+                .anyMatch(w -> (w.getTeam() != null && w.getTeam().getId() != null)
+                        || (w.getPlayerName() != null && !w.getPlayerName().isBlank()));
         if (alreadySubmitted) {
-            log.warn("User {} attempted to update already submitted wildcards in group {}", userId, groupId);
             throw new AppException(ErrorCode.WILDCARDS_LOCKED, "Wildcards already submitted and cannot be modified");
         }
 
@@ -118,9 +105,11 @@ public class WildcardService {
             wildcardRepository.save(wc);
         }
 
-        List<Wildcard> saved = wildcardRepository.findByGroupIdAndUserId(groupId, userId);
+        // Return with teams eagerly loaded
+        List<Wildcard> saved = wildcardRepository.findByGroupIdAndUserIdWithTeam(groupId, userId);
         boolean hasSubmitted = saved.stream()
-                .anyMatch(w -> w.getTeam() != null || (w.getPlayerName() != null && !w.getPlayerName().isBlank()));
+                .anyMatch(w -> (w.getTeam() != null && w.getTeam().getId() != null)
+                        || (w.getPlayerName() != null && !w.getPlayerName().isBlank()));
         boolean groupLocked = group.getTournament().getStatus() != TournamentStatus.SCHEDULED;
         boolean isLocked = hasSubmitted || groupLocked;
         return saved.stream().map(w -> toDto(w, isLocked)).toList();
@@ -142,10 +131,12 @@ public class WildcardService {
     }
 
     private WildcardResponse toDto(Wildcard w, boolean isLocked) {
+        Team team = w.getTeam();
+        UUID teamId = team != null ? team.getId() : null;
+        String teamName = team != null ? team.getName() : null;
         return new WildcardResponse(
                 w.getId(), w.getType(), LABELS.getOrDefault(w.getType(), w.getType().name()),
-                w.getTeam() != null ? w.getTeam().getId() : null,
-                w.getTeam() != null ? w.getTeam().getName() : null,
+                teamId, teamName,
                 w.getPlayerName(), 5, w.getPointsEarned(), isLocked
         );
     }
