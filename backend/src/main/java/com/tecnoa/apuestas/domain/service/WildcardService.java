@@ -48,15 +48,17 @@ public class WildcardService {
     }
 
     public List<WildcardResponse> getMyWildcards(UUID groupId, UserPrincipal principal) {
-        requireMember(groupId, principal.getUserId());
         BettingGroup group = requireWildcardsEnabled(groupId);
-        List<Wildcard> existing = wildcardRepository.findByGroupIdAndUserIdWithTeam(groupId, principal.getUserId());
-        boolean hasSubmitted = existing.stream()
-                .anyMatch(w -> (w.getTeam() != null && w.getTeam().getId() != null)
-                        || (w.getPlayerName() != null && !w.getPlayerName().isBlank()));
-        boolean groupLocked = group.getTournament().getStatus() != TournamentStatus.SCHEDULED;
-        boolean isLocked = hasSubmitted || groupLocked;
-        return existing.stream().map(w -> toDto(w, isLocked)).toList();
+        requireMember(groupId, principal.getUserId());
+
+        List<Wildcard> wildcards = wildcardRepository.findByGroupIdAndUserIdWithTeam(groupId, principal.getUserId());
+
+        TournamentStatus status = group.getTournament().getStatus();
+        boolean isLocked = !wildcards.isEmpty() || status != TournamentStatus.SCHEDULED;
+
+        return wildcards.stream()
+                .map(w -> toDto(w, isLocked))
+                .toList();
     }
 
     @Transactional
@@ -116,7 +118,7 @@ public class WildcardService {
     }
 
     private BettingGroup requireWildcardsEnabled(UUID groupId) {
-        BettingGroup group = groupRepository.findById(groupId)
+        BettingGroup group = groupRepository.findByIdWithDetails(groupId)
                 .orElseThrow(() -> new AppException(ErrorCode.GROUP_NOT_FOUND, "Group not found"));
         if (!group.isWildcardsEnabled()) {
             throw new AppException(ErrorCode.GROUP_NOT_FOUND, "Wildcards not enabled for this group");
